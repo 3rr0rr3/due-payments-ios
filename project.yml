@@ -18,6 +18,8 @@ targets:
         SWIFT_VERSION: '5.0'
         TARGETED_DEVICE_FAMILY: '1'
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CURRENT_PROJECT_VERSION: '4'
+        MARKETING_VERSION: '1.0.1'
   DueTests:
     type: bundle.unit-test
     platform: iOS

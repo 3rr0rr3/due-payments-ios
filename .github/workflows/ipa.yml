@@ -10,6 +10,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Verify complete icon image
+        run: python3 scripts/validate_icon.py
       - name: Generate Xcode project
         run: |
           brew install xcodegen
