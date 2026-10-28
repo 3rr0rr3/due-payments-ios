@@ -24,6 +24,8 @@ jobs:
           APP=build/device/Build/Products/Release-iphoneos/Due.app
           test -f "$APP/Due"
           xcrun lipo "$APP/Due" -verify_arch arm64
+          test -f "$APP/Assets.car"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$APP/Info.plist" | grep -Fx AppIcon
           mkdir -p build/package/Payload
           cp -R "$APP" build/package/Payload/
           cd build/package
