@@ -1,0 +1,41 @@
+name: Test and build IPA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Run payment tests on iPhone simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(d["udid"] for ds in data["devices"].values() for d in ds if "iPhone" in d["name"]))')
+          xcodebuild test -project Due.xcodeproj -scheme Due -destination "platform=iOS Simulator,id=$DEVICE_ID" -resultBundlePath build/Tests.xcresult CODE_SIGNING_ALLOWED=NO
+      - name: Build iPhone app
+        run: |
+          xcodebuild build -project Due.xcodeproj -scheme Due -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          APP=build/device/Build/Products/Release-iphoneos/Due.app
+          test -f "$APP/Due"
+          xcrun lipo "$APP/Due" -verify_arch arm64
+          mkdir -p build/package/Payload
+          cp -R "$APP" build/package/Payload/
+          cd build/package
+          zip -qry ../Due.ipa Payload
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: build/Tests.xcresult
+      - name: Publish sideloading IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-${{ github.run_number }}"
+          gh release create "$TAG" build/Due.ipa --title "Due build ${{ github.run_number }}" --notes "Unsigned arm64 iPhone IPA for signing with AltStore or Sideloadly. Includes automated payment model tests. iOS 17 or later."
